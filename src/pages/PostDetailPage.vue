@@ -11,17 +11,51 @@ const post = ref<Post | null>(null)
 const deleteDialog = ref(false)
 const loading = ref(true)
 
+// 좋아요 상태 관리용 ref
+const isLiked = ref(false)
+const STORAGE_KEY = 'localhub-liked-posts'
+
 const id = computed(() => Number(route.params.id))
+
+// 초기 로드 시 localStorage에서 좋아요 여부 확인
+const checkLikedStatus = () => {
+  const raw = localStorage.getItem(STORAGE_KEY)
+  if (raw) {
+    const likedIds = JSON.parse(raw)
+    isLiked.value = likedIds.includes(id.value)
+  }
+}
 
 const load = async () => {
   loading.value = true
   await incrementPostViews(id.value)
   post.value = await getPostById(id.value)
+  checkLikedStatus()
   loading.value = false
 }
 
 const handleLike = async () => {
-  post.value = await togglePostLike(id.value)
+  try {
+    // API 호출을 통해 서버(MSW) 데이터 업데이트
+    post.value = await togglePostLike(id.value)
+    
+    // 로컬 상태 반전
+    isLiked.value = !isLiked.value
+
+    // localStorage 동기화
+    const raw = localStorage.getItem(STORAGE_KEY)
+    let likedIds = raw ? JSON.parse(raw) : []
+
+    if (isLiked.value) {
+      if (!likedIds.includes(id.value)) likedIds.push(id.value)
+    } else {
+      likedIds = likedIds.filter((likedId: number) => likedId !== id.value)
+    }
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(likedIds))
+  } catch (error) {
+    alert('좋아요 처리에 실패했습니다.')
+  }
 }
 
 const handleDelete = async (password: string) => {
@@ -44,9 +78,24 @@ onMounted(load)
         <h1 class="detail-title" style="margin-top: 12px">{{ post.title }}</h1>
         <p class="meta" style="margin-top: 10px">{{ post.author }} · {{ new Date(post.createdAt).toLocaleString('ko-KR') }}</p>
 
-        <div class="toolbar" style="margin-top: 18px">
+        <div class="toolbar" style="margin-top: 18px; display: flex; gap: 12px; align-items: center;">
           <span class="badge">조회 {{ post.viewCount }}</span>
-          <span class="badge">좋아요 {{ post.likeCount }}</span>
+          
+          <button 
+            type="button" 
+            @click="handleLike" 
+            style="display: flex; align-items: center; gap: 4px; background: none; border: none; cursor: pointer; padding: 0; color: inherit;"
+          >
+            <!-- 
+              Material Icons 사용: 
+              좋아요 상태(isLiked)에 따라 thumb_up (filled) 또는 thumb_up_off_alt (outlined) 사용 
+            -->
+            <span class="material-icons" :style="{ color: 'inherit', fontSize: '20px' }">
+              {{ isLiked ? 'thumb_up' : 'thumb_up_off_alt' }}
+            </span>
+            
+            <span class="badge" style="margin: 0;">{{ post.likeCount }}</span>
+          </button>
         </div>
 
         <div class="article" style="margin-top: 22px">
@@ -54,7 +103,7 @@ onMounted(load)
         </div>
 
         <div class="card-actions" style="margin-top: 24px">
-          <button type="button" class="button-secondary" @click="handleLike">좋아요 토글</button>
+          <!-- 기존 좋아요 버튼 제거됨 -->
           <RouterLink class="button" :to="`/posts/${post.id}/edit`">수정</RouterLink>
           <button type="button" class="button-danger" @click="deleteDialog = true">삭제</button>
           <RouterLink class="button-ghost" to="/posts">목록으로</RouterLink>
@@ -70,6 +119,4 @@ onMounted(load)
       @confirm="handleDelete"
     />
   </main>
-
-  <section v-else class="empty-state">게시글을 불러오는 중입니다.</section>
 </template>
