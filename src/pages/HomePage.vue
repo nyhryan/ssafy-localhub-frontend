@@ -31,7 +31,7 @@ onMounted(async () => {
           <h2>최근 게시글</h2>
           <p class="section-desc">서울에서 일어나는 최근 소식을 확인해보세요.</p>
         </div>
-        <RouterLink class="button-ghost" to="/posts">전체보기</RouterLink>
+        <RouterLink class="button-ghost" to="/posts">더보기</RouterLink>
       </div>
 
       <div class="grid-2" style="margin-top: 16px">
