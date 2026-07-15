@@ -6,7 +6,7 @@ import type { Post } from '../types/api'
 
 const posts = ref<Post[]>([])
 const categories = getPostCategories()
-const query = ref('')
+const keyword = ref('')
 const category_name = ref('전체')
 const page = ref(1)
 const totalPages = ref(1)
@@ -14,7 +14,7 @@ const totalPages = ref(1)
 const load = async () => {
   const response = await getPosts({
     category_name: category_name.value,
-    query: query.value,
+    keyword: keyword.value,
     page: page.value,
     pageSize: 6,
   })
@@ -49,7 +49,7 @@ onMounted(load)
 
       <form class="toolbar" style="margin-top: 18px" @submit.prevent="submitSearch">
         <label class="sr-only" for="post-search">검색어</label>
-        <input id="post-search" v-model="query" type="search" placeholder="제목, 본문, 작성자 검색" />
+        <input id="post-search" v-model="keyword" type="search" placeholder="제목, 본문, 작성자 검색" />
         <label class="sr-only" for="post-category">카테고리</label>
         <select id="post-category" v-model="category_name">
           <option v-for="item in categories" :key="item" :value="item">{{ item }}</option>

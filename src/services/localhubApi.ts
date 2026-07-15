@@ -40,10 +40,10 @@ export async function getRecentPosts(): Promise<{ posts: Post[] }> {
 // ==========================================
 // 3. 게시글 목록 조회 및 탐색
 // ==========================================
-export async function getPosts(params: { category_name?: string; query?: string; page?: number; pageSize?: number }): Promise<PostListResponse> {
+export async function getPosts(params: { category_name?: string; keyword?: string; page?: number; pageSize?: number }): Promise<PostListResponse> {
   const urlParams = new URLSearchParams()
   if (params.category_name) urlParams.append('category_name', params.category_name)
-  if (params.query) urlParams.append('query', params.query)
+  if (params.keyword) urlParams.append('keyword', params.keyword)
   if (params.page) urlParams.append('page', params.page.toString())
   if (params.pageSize) urlParams.append('pageSize', params.pageSize.toString())
 
