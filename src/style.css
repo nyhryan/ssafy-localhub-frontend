@@ -186,3 +186,42 @@ h2 { font-size: clamp(1.3rem, 2.2vw, 2rem); letter-spacing: -0.03em; }
   .message { max-width: 100%; }
   .floating-chat { right: 10px; bottom: 88px; width: calc(100vw - 20px); }
 }
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.pagination-arrow {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 20px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.pagination-arrow:disabled {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pagination-arrow:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+}
+
+.pagination-numbers {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.pagination-numbers .active {
+  color: var(--accent);
+}

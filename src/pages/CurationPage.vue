@@ -47,12 +47,22 @@ const title = computed(() => (props.mode === 'all' ? '큐레이션 - 전체보�
     </section>
 
     <section class="surface">
-      <div class="panel-actions" style="justify-content: space-between; align-items: center">
-        <span class="muted">{{ page }} / {{ totalPages }}</span>
-        <div class="panel-actions">
-          <button class="button-ghost" type="button" :disabled="page <= 1" @click="page = Math.max(1, page - 1); load()">이전</button>
-          <button class="button-ghost" type="button" :disabled="page >= totalPages" @click="page = Math.min(totalPages, page + 1); load()">다음</button>
+      <div class="pagination-container">
+        <!-- 이전 버튼 -->
+        <button class="pagination-arrow" :disabled="page <= 1" @click="page = Math.max(1, page - 1); load()">
+          이전
+        </button>
+
+        <!-- 페이지 번호 (구글 스타일: 현재 페이지 강조) -->
+        <div class="pagination-numbers">
+          <span class="active">{{ page }}</span>
+          <span class="muted">/ {{ totalPages }}</span>
         </div>
+
+        <!-- 다음 버튼 -->
+        <button class="pagination-arrow" :disabled="page >= totalPages" @click="page = Math.min(totalPages, page + 1); load()">
+          다음
+        </button>
       </div>
     </section>
   </main>
