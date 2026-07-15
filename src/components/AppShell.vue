@@ -46,9 +46,6 @@ const routeLabel = computed(() => {
         <RouterLink class="nav-link" to="/">홈</RouterLink>
         <RouterLink class="nav-link" to="/posts">게시글</RouterLink>
         <RouterLink class="nav-link" to="/curation">큐레이션</RouterLink>
-        <RouterLink class="nav-link" to="/chat">챗봇</RouterLink>
-        <RouterLink class="nav-link" to="/dashboard">대시보드</RouterLink>
-        <RouterLink class="nav-link" to="/festivals">축제</RouterLink>
         <RouterLink class="nav-link" to="/map">지도</RouterLink>
       </nav>
 
