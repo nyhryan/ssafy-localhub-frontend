@@ -56,7 +56,7 @@ onMounted(async () => {
 
       <div class="grid-2" style="margin-top: 16px">
         <RouterLink v-for="post in recentPosts" :key="post.id" :to="`/posts/${post.id}`" class="post-card">
-          <span class="card-tag">{{ post.category }}</span>
+          <span class="card-tag">{{ post.category_name }}</span>
           <strong class="post-title">{{ post.title }}</strong>
           <p class="muted">{{ post.content }}</p>
           

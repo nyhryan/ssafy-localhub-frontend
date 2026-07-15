@@ -13,18 +13,18 @@ export type PostCategory = (typeof postCategories)[number]
 
 export interface Post {
   id: number
-  category: PostCategory
+  category_name: PostCategory
   title: string
   content: string
   author: string
   password: string
-  createdAt: number
+  created_at: string
   viewCount: number
   likeCount: number
 }
 
 export interface PostInput {
-  category: PostCategory
+  category_name: PostCategory
   title: string
   content: string
   author: string

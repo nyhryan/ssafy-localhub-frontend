@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PasswordModal from '../components/PasswordModal.vue'
-import { deletePost, getPostById, incrementPostViews, togglePostLike } from '../services/localhubApi'
+import { deletePost, getPostById, incrementPostViews, togglePostLike, verifyPostPassword } from '../services/localhubApi'
 import type { Post } from '../types/api'
 import { Eye, Heart } from 'lucide-vue-next'
 
@@ -61,6 +61,11 @@ const handleLike = async () => {
 
 const handleDelete = async (password: string) => {
   try {
+    const verified = await verifyPostPassword(id.value, password)
+    if (!verified) {
+      throw new Error('비밀번호가 일치하지 않습니다.')
+    }
+
     await deletePost(id.value, password)
     await router.push('/posts')
   } catch (error) {
@@ -75,9 +80,9 @@ onMounted(load)
   <main class="page" v-if="!loading && post">
     <section class="detail-layout">
       <article class="detail-panel">
-        <div class="badge">{{ post.category }}</div>
+        <div class="badge">{{ post.category_name }}</div>
         <h1 class="detail-title" style="margin-top: 12px">{{ post.title }}</h1>
-        <p class="meta" style="margin-top: 10px">{{ post.author }} · {{ new Date(post.createdAt).toLocaleString('ko-KR') }}</p>
+        <p class="meta" style="margin-top: 10px">{{ post.author }} · {{ new Date(post.created_at).toLocaleString('ko-KR') }}</p>
 
         <div class="toolbar" style="margin-top: 18px; display: flex; gap: 20px; align-items: center;">
           <div style="display: flex; align-items: center; gap: 6px;">
