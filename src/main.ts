@@ -3,4 +3,19 @@ import router from './router'
 import './style.css'
 import App from './App.vue'
 
-createApp(App).use(router).mount('#app')
+async function bootstrap() {
+
+    if (import.meta.env.DEV) {
+
+        const { worker } = await import("./mocks/browser")
+
+        await worker.start()
+
+    }
+
+    createApp(App).use(router).mount('#app')
+}
+
+bootstrap()
+
+
