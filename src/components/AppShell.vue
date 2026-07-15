@@ -37,8 +37,8 @@ const routeLabel = computed(() => {
       <RouterLink to="/" class="brand">
         <span class="brand-mark" aria-hidden="true" />
         <span>
-          <span class="brand-title">LocalHub</span>
-          <span class="brand-subtitle">지역 정보와 커뮤니티를 한 번에</span>
+          <span class="brand-title">로 컬 허 브</span>
+          <span class="brand-subtitle">서울의 지역 정보를 서로 공유하세요.</span>
         </span>
       </RouterLink>
 
