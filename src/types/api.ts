@@ -18,7 +18,7 @@ export interface Post {
   content: string
   author: string
   password: string
-  createdAt: number
+  created_at: string
   viewCount: number
   likeCount: number
 }

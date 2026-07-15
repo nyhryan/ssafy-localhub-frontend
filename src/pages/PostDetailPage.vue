@@ -77,7 +77,7 @@ onMounted(load)
       <article class="detail-panel">
         <div class="badge">{{ post.category }}</div>
         <h1 class="detail-title" style="margin-top: 12px">{{ post.title }}</h1>
-        <p class="meta" style="margin-top: 10px">{{ post.author }} · {{ new Date(post.createdAt).toLocaleString('ko-KR') }}</p>
+        <p class="meta" style="margin-top: 10px">{{ post.author }} · {{ new Date(post.created_at).toLocaleString('ko-KR') }}</p>
 
         <div class="toolbar" style="margin-top: 18px; display: flex; gap: 20px; align-items: center;">
           <div style="display: flex; align-items: center; gap: 6px;">

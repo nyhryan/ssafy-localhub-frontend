@@ -100,7 +100,7 @@ export const handlers = [
       content: body.content,
       author: body.author,
       password: body.password,
-      createdAt: Date.now(),
+      created_at: new Date().toISOString(),
       viewCount: 0,
       likeCount: 0,
       region: 'LOCAL',

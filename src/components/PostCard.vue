@@ -16,7 +16,7 @@ defineProps<{
       <span>{{ post.author }}</span>
       <span style="display: flex; align-items: center; gap: 12px;">
         <span style="display: flex; align-items: center; gap: 4px;">
-        {{ new Date(post.createdAt).toLocaleDateString('ko-KR') }}
+        {{ new Date(post.created_at).toLocaleDateString('ko-KR') }}
         </span>
         <span style="display: flex; align-items: center; gap: 4px;">
           <Eye :size="16" /> {{ post.viewCount }}
