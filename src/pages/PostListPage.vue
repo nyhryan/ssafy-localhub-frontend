@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import PostCard from '../components/PostCard.vue'
-import { getPostCategories, getPosts, type Post } from '../services/localhubApi'
+import { getPostCategories, getPosts } from '../services/localhubApi'
+import type { Post } from '../types/api'
 
 const posts = ref<Post[]>([])
 const categories = getPostCategories()

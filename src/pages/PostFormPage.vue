@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { createPost, getPostById, getPostCategories, updatePost, verifyPostPassword, type PostCategory } from '../services/localhubApi'
+import { createPost, getPostById, getPostCategories, updatePost, verifyPostPassword } from '../services/localhubApi'
+import type { PostCategory } from '../types/api'
 
 const route = useRoute()
 const router = useRouter()
