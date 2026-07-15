@@ -2,9 +2,9 @@
 import { onMounted, ref } from "vue";
 import PostCard from "../components/PostCard.vue";
 import { getCategories, getRecentPosts } from "../services/localhubApi";
-import type { Place, Post } from "../types/api";
+import type { Place, PostListItem } from "../types/api";
 
-const recentPosts = ref<Post[]>([]);
+const recentPosts = ref<PostListItem[]>([]);
 const places = ref<Place[]>([]);
 
 onMounted(async () => {

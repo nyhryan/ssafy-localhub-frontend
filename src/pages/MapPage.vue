@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { getCategories, type Place } from '../services/localhubApi'
+import { getCategories } from '../services/localhubApi'
+import type { Place } from '../types/api'
 
 const places = ref<Place[]>([])
 
@@ -15,7 +16,7 @@ const toPinStyle = (place: Place) => {
 
 onMounted(async () => {
   const response = await getCategories({ filter: '전체', pageSize: 6 })
-  places.value = response.items
+  places.value = response.places
 })
 </script>
 

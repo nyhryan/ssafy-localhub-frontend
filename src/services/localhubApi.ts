@@ -4,6 +4,7 @@
 import type {
   Post,
   PostInput,
+  PostListItem,
   PostListResponse,
   PlaceListResponse,
   Festival,
@@ -31,8 +32,11 @@ export async function getCategories(params: { filter?: string; page?: number; pa
 // ==========================================
 // 2. 최근 게시글 목록 조회
 // ==========================================
-export async function getRecentPosts(): Promise<{ posts: Post[] }> {
-  const res = await fetch(`${API_BASE}/posts/recent`)
+export async function getRecentPosts(limit = 5): Promise<PostListItem[]> {
+  const urlParams = new URLSearchParams()
+  urlParams.append('limit', String(limit))
+
+  const res = await fetch(`${API_BASE}/posts/recent?${urlParams.toString()}`)
   if (!res.ok) throw new Error('최근 게시글을 불러오는데 실패했습니다.')
   return res.json()
 }
@@ -133,9 +137,9 @@ export async function chatRespond(text: string): Promise<ChatResponse> {
 // ==========================================
 // 10. 게시글 조회수 증가
 // ==========================================
-export async function incrementPostViews(id: number): Promise<void> {
+export async function incrementPostViews(_id: number): Promise<void> {
   // TODO 나중에 추가
-  // const res = await fetch(`${API_BASE}/posts/${id}/views`, { method: 'POST' })
+  // const res = await fetch(`${API_BASE}/posts/${_id}/views`, { method: 'POST' })
   // if (!res.ok) throw new Error('조회수 업데이트에 실패했습니다.')
 }
 

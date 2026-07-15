@@ -28,11 +28,6 @@ const submitSearch = async () => {
   await load()
 }
 
-const movePage = async (nextPage: number) => {
-  page.value = nextPage
-  await load()
-}
-
 onMounted(load)
 </script>
 
