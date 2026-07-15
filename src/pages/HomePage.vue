@@ -28,25 +28,6 @@ onMounted(async () => {
     <section class="surface">
       <div class="section-head">
         <div>
-          <h2>최근 게시글</h2>
-          <p class="section-desc">서울에서 일어나는 최근 소식을 확인해보세요.</p>
-        </div>
-        <RouterLink class="button-ghost" to="/posts">더보기</RouterLink>
-      </div>
-
-      <div class="grid-2" style="margin-top: 16px">
-        <RouterLink v-for="post in recentPosts" :key="post.id" :to="`/posts/${post.id}`" class="post-card">
-          <span class="card-tag">{{ post.category }}</span>
-          <strong class="post-title">{{ post.title }}</strong>
-          <p class="muted">{{ post.content }}</p>
-          <div class="meta">{{ post.author }} · 조회 {{ post.viewCount }} · 좋아요 {{ post.likeCount }}</div>
-        </RouterLink>
-      </div>
-    </section>
-
-    <section class="surface">
-      <div class="section-head">
-        <div>
           <h2>큐레이션</h2>
           <p class="section-desc">장소 카드와 카테고리별 탐색을 연결합니다.</p>
         </div>
@@ -60,6 +41,25 @@ onMounted(async () => {
           <strong class="place-title">{{ place.title }}</strong>
           <p class="muted">{{ place.address }}</p>
         </article>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="section-head">
+        <div>
+          <h2>최근 게시글</h2>
+          <p class="section-desc">서울에서 일어나는 최근 소식을 확인해보세요.</p>
+        </div>
+        <RouterLink class="button-ghost" to="/posts">더보기</RouterLink>
+      </div>
+
+      <div class="grid-2" style="margin-top: 16px">
+        <RouterLink v-for="post in recentPosts" :key="post.id" :to="`/posts/${post.id}`" class="post-card">
+          <span class="card-tag">{{ post.category }}</span>
+          <strong class="post-title">{{ post.title }}</strong>
+          <p class="muted">{{ post.content }}</p>
+          <div class="meta">{{ post.author }} · 조회 {{ post.viewCount }} · 좋아요 {{ post.likeCount }}</div>
+        </RouterLink>
       </div>
     </section>
 
