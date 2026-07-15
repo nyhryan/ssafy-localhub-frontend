@@ -65,7 +65,7 @@ export interface PostListResponse {
 }
 
 export interface PlaceListResponse {
-  items: Place[]
+  places: Place[]
   pages: PageResponse
 }
 

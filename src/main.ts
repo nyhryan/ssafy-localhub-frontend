@@ -3,9 +3,11 @@ import router from './router'
 import './style.css'
 import App from './App.vue'
 
+const shouldMock = import.meta.env.DEV && import.meta.env.USE_MOCK === 'true'
+
 async function bootstrap() {
 
-    if (import.meta.env.DEV) {
+    if (shouldMock) {
 
         const { worker } = await import("./mocks/browser")
 

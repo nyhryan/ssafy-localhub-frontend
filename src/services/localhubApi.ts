@@ -12,14 +12,14 @@ import type {
 } from '../types/api';
 import { postCategories } from '../types/api';
 
-const API_BASE = '/api/v1'
+const API_BASE = import.meta.env.VITE_API_URL
 
 // ==========================================
 // 1. 큐레이션 카테고리 데이터
 // ==========================================
 export async function getCategories(params: { filter?: string; page?: number; pageSize?: number }): Promise<PlaceListResponse> {
   const urlParams = new URLSearchParams()
-  if (params.filter) urlParams.append('filter', params.filter)
+  if (params.filter && params.filter !== '전체') urlParams.append('filter', params.filter)
   if (params.page) urlParams.append('page', params.page.toString())
   if (params.pageSize) urlParams.append('pageSize', params.pageSize.toString())
 
@@ -134,8 +134,9 @@ export async function chatRespond(text: string): Promise<ChatResponse> {
 // 10. 게시글 조회수 증가
 // ==========================================
 export async function incrementPostViews(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/posts/${id}/views`, { method: 'POST' })
-  if (!res.ok) throw new Error('조회수 업데이트에 실패했습니다.')
+  // TODO 나중에 추가
+  // const res = await fetch(`${API_BASE}/posts/${id}/views`, { method: 'POST' })
+  // if (!res.ok) throw new Error('조회수 업데이트에 실패했습니다.')
 }
 
 // ==========================================
