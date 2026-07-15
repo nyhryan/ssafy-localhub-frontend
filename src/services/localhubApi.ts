@@ -48,7 +48,7 @@ export async function getPosts(params: {
 }): Promise<PostListResponse> {
   const urlParams = new URLSearchParams()
   if (params.category_name && params.category_name !== '전체') {
-    urlParams.append('category_name', params.category_name)
+    urlParams.append('category', params.category_name)
   }
   if (params.query) urlParams.append('keyword', params.query)
   if (params.page) urlParams.append('page', params.page.toString())
