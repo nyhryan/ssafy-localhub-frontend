@@ -300,19 +300,23 @@ export const handlers = [
   http.post("/api/v1/posts/:id/like", async ({ params, request }) => {
     await delay(60);
     const id = Number(params.id);
-    await request.json().catch(() => ({}));
+    const body = (await request.json().catch(() => ({}))) as {
+      has_liked?: boolean;
+    };
     const post = mockPosts.find((item) => item.id === id);
 
     if (!post) return new HttpResponse(null, { status: 404 });
 
     const likedIds = readLikedIds();
-    // 프론트에서 amount: 1 or -1을 넘겨줄 수도 있고, 서버가 토글할 수도 있음
-    if (likedIds.has(id)) {
-      likedIds.delete(id);
-      post.likeCount = Math.max(0, post.likeCount - 1);
-    } else {
+    const currentHasLiked = body.has_liked === true;
+    const alreadyLiked = likedIds.has(id);
+
+    if (!currentHasLiked && !alreadyLiked) {
       likedIds.add(id);
       post.likeCount += 1;
+    } else if (currentHasLiked && alreadyLiked) {
+      likedIds.delete(id);
+      post.likeCount = Math.max(0, post.likeCount - 1);
     }
     writeLikedIds(likedIds);
 

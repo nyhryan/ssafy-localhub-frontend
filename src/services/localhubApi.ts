@@ -146,11 +146,14 @@ export async function incrementPostViews(_id: number): Promise<void> {
 // ==========================================
 // 11. 게시글 좋아요 토글
 // ==========================================
-export async function togglePostLike(id: number, amount: number = 1): Promise<Post> {
+export async function togglePostLike(
+  id: number,
+  currentHasLiked: boolean,
+): Promise<Post | PostListItem> {
   const res = await fetch(`${API_BASE}/posts/${id}/like`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ amount }),
+    body: JSON.stringify({ has_liked: currentHasLiked }),
   })
   if (!res.ok) throw new Error('좋아요 처리에 실패했습니다.')
   return res.json()
