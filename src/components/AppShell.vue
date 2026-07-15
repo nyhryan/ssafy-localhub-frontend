@@ -35,10 +35,10 @@ const routeLabel = computed(() => {
   <div class="app-shell">
     <header class="shell-header">
       <RouterLink to="/" class="brand">
-        <span class="brand-mark" aria-hidden="true" />
+        <img src="/brandlogo.png" width="64" height="64" aria-hidden="true" />
         <span>
           <span class="brand-title">로 컬 허 브</span>
-          <span class="brand-subtitle">서울의 지역 정보를 서로 공유하세요.</span>
+          <span class="brand-subtitle">서울의 지역 정보를 서로 공유해봐요.</span>
         </span>
       </RouterLink>
 
