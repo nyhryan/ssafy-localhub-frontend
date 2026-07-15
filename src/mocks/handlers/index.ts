@@ -56,10 +56,10 @@ export const handlers = [
     const pageSize = Number(url.searchParams.get('pageSize')) || 6
 
     const filtered = mockPosts.filter((post) => {
-      const categoryMatch = !category || category === '전체' || post.category === category
+      const categoryMatch = !category || category === '전체' || post.category_name === category
       const queryMatch =
         !query ||
-        [post.title, post.content, post.author, post.category].some((value) =>
+        [post.title, post.content, post.author, post.category_name].some((value) =>
           normalize(String(value)).includes(query),
         )
       return categoryMatch && queryMatch
@@ -95,7 +95,7 @@ export const handlers = [
 
     const newPost = {
       id: getNextPostId(),
-      category: body.category,
+      category_name: body.category_name,
       title: body.title,
       content: body.content,
       author: body.author,
@@ -141,7 +141,7 @@ export const handlers = [
 
     if (!post) return new HttpResponse(null, { status: 404 })
 
-    if (body.category) post.category = body.category
+    if (body.category_name) post.category_name = body.category_name
     if (body.title) post.title = body.title
     if (body.content) post.content = body.content
     if (body.author) post.author = body.author
@@ -187,7 +187,7 @@ export const handlers = [
         message: matched.length
           ? `게시글 ${matched.length}건을 찾았어요. 관련 글을 빠르게 확인해보세요.`
           : '게시글 검색어를 조금 더 구체적으로 입력해보세요.',
-        items: matched.map((post) => ({ id: post.id, title: post.title, type: post.category, note: post.author })),
+        items: matched.map((post) => ({ id: post.id, title: post.title, type: post.category_name, note: post.author })),
       })
     }
 
@@ -212,7 +212,7 @@ export const handlers = [
 
     return HttpResponse.json({
       message: '관광지, 맛집, 축제, 게시글 검색을 도와드릴 수 있어요. 원하는 지역이나 카테고리를 말해보세요.',
-      items: mockPosts.slice(0, 2).map((post) => ({ id: post.id, title: post.title, type: post.category })),
+      items: mockPosts.slice(0, 2).map((post) => ({ id: post.id, title: post.title, type: post.category_name })),
     })
   }),
 

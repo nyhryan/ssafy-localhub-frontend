@@ -12,7 +12,7 @@ const categories = getPostCategories()
 const loading = ref(false)
 
 const form = reactive({
-  category: '관광지' as PostCategory,
+  category_name: '관광지' as PostCategory,
   title: '',
   content: '',
   author: '',
@@ -28,7 +28,7 @@ onMounted(async () => {
     return
   }
 
-  form.category = post.category
+  form.category_name = post.category_name
   form.title = post.title
   form.content = post.content
   form.author = post.author
@@ -72,7 +72,7 @@ const submit = async () => {
       <form class="form-grid" style="margin-top: 18px" @submit.prevent="submit">
         <label class="field-group">
           <span>카테고리</span>
-          <select v-model="form.category" class="form-field">
+          <select v-model="form.category_name" class="form-field">
             <option v-for="item in categories" :key="item" :value="item">{{ item }}</option>
           </select>
         </label>

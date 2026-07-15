@@ -13,7 +13,7 @@ export type PostCategory = (typeof postCategories)[number]
 
 export interface Post {
   id: number
-  category: PostCategory
+  category_name: PostCategory
   title: string
   content: string
   author: string
@@ -24,7 +24,7 @@ export interface Post {
 }
 
 export interface PostInput {
-  category: PostCategory
+  category_name: PostCategory
   title: string
   content: string
   author: string

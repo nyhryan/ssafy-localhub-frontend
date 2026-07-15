@@ -40,9 +40,9 @@ export async function getRecentPosts(): Promise<{ posts: Post[] }> {
 // ==========================================
 // 3. 게시글 목록 조회 및 탐색
 // ==========================================
-export async function getPosts(params: { category?: string; query?: string; page?: number; pageSize?: number }): Promise<PostListResponse> {
+export async function getPosts(params: { category_name?: string; query?: string; page?: number; pageSize?: number }): Promise<PostListResponse> {
   const urlParams = new URLSearchParams()
-  if (params.category) urlParams.append('category', params.category)
+  if (params.category_name) urlParams.append('category_name', params.category_name)
   if (params.query) urlParams.append('query', params.query)
   if (params.page) urlParams.append('page', params.page.toString())
   if (params.pageSize) urlParams.append('pageSize', params.pageSize.toString())
@@ -180,7 +180,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     // 임시로 상위 4개 카테고리 집계 (실제로는 백엔드에서 전용 API를 제공하는 것이 좋습니다)
     const categoryCounts: Record<string, number> = {}
     postsRes.items.forEach(post => {
-      categoryCounts[post.category] = (categoryCounts[post.category] || 0) + 1
+      categoryCounts[post.category_name] = (categoryCounts[post.category_name] || 0) + 1
     })
 
     const topCategories = Object.entries(categoryCounts)

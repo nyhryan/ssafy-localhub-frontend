@@ -9,7 +9,7 @@ defineProps<{
 
 <template>
   <article class="post-card">
-    <span class="card-tag">{{ post.category }}</span>
+    <span class="card-tag">{{ post.category_name }}</span>
     <RouterLink :to="`/posts/${post.id}`" class="post-title">{{ post.title }}</RouterLink>
     <p class="muted">{{ post.content }}</p>
     <div class="meta" style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
