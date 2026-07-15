@@ -1,8 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import ChatPage from '../pages/ChatPage.vue'
 import CurationPage from '../pages/CurationPage.vue'
-import DashboardPage from '../pages/DashboardPage.vue'
-import FestivalsPage from '../pages/FestivalsPage.vue'
 import HomePage from '../pages/HomePage.vue'
 import MapPage from '../pages/MapPage.vue'
 import NotFoundPage from '../pages/NotFoundPage.vue'
@@ -24,8 +22,6 @@ const router = createRouter({
     { path: '/chat', name: 'chat', component: ChatPage },
     { path: '/curation', name: 'curation', component: CurationPage },
     { path: '/curation/all', name: 'curation-all', component: CurationPage, props: { mode: 'all' } },
-    { path: '/dashboard', name: 'dashboard', component: DashboardPage },
-    { path: '/festivals', name: 'festivals', component: FestivalsPage },
     { path: '/map', name: 'map', component: MapPage },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundPage },
   ],
