@@ -17,6 +17,16 @@ const isLiked = ref(false)
 const STORAGE_KEY = 'localhub-liked-posts'
 
 const id = computed(() => Number(route.params.id))
+const viewCount = computed(() => {
+  if (!post.value) return 0
+  if (typeof post.value.viewCount === 'number') return post.value.viewCount
+  return 'views' in post.value && typeof post.value.views === 'number' ? post.value.views : 0
+})
+const likeCount = computed(() => {
+  if (!post.value) return 0
+  if (typeof post.value.likeCount === 'number') return post.value.likeCount
+  return 'likes' in post.value && typeof post.value.likes === 'number' ? post.value.likes : 0
+})
 
 const readLikedIds = (): number[] => {
   const raw = localStorage.getItem(STORAGE_KEY)
@@ -65,7 +75,7 @@ const handleLike = async () => {
         ? response.likes
         : 'likeCount' in response && typeof response.likeCount === 'number'
           ? response.likeCount
-          : post.value.likeCount + (nextLiked ? 1 : -1)
+          : likeCount.value + (nextLiked ? 1 : -1)
 
     post.value = {
       ...post.value,
@@ -106,7 +116,7 @@ onMounted(load)
         <div class="toolbar" style="margin-top: 18px; display: flex; gap: 20px; align-items: center;">
           <div style="display: flex; align-items: center; gap: 6px;">
             <Eye :size="18" />
-            <span>{{ post.viewCount }}</span>
+            <span>{{ viewCount }}</span>
           </div>
 
           <button
@@ -129,7 +139,7 @@ onMounted(load)
               :stroke-width="2"
               :class="{ liked: isLiked }"
             />
-            <span>{{ post.likeCount }}</span>
+            <span>{{ likeCount }}</span>
           </button>
         </div>
 
