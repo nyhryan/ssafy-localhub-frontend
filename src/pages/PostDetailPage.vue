@@ -17,14 +17,41 @@ const isLiked = ref(false)
 const STORAGE_KEY = 'localhub-liked-posts'
 
 const id = computed(() => Number(route.params.id))
+const viewCount = computed(() => {
+  if (!post.value) return 0
+  if (typeof post.value.viewCount === 'number') return post.value.viewCount
+  return 'views' in post.value && typeof post.value.views === 'number' ? post.value.views : 0
+})
+const likeCount = computed(() => {
+  if (!post.value) return 0
+  if (typeof post.value.likeCount === 'number') return post.value.likeCount
+  return 'likes' in post.value && typeof post.value.likes === 'number' ? post.value.likes : 0
+})
+
+const readLikedIds = (): number[] => {
+  const raw = localStorage.getItem(STORAGE_KEY)
+  if (!raw) return []
+
+  try {
+    const ids = JSON.parse(raw)
+    return Array.isArray(ids) ? ids.filter((likedId): likedId is number => typeof likedId === 'number') : []
+  } catch {
+    return []
+  }
+}
+
+const syncLikedStorage = (postId: number, hasLiked: boolean) => {
+  const likedIds = readLikedIds()
+  const nextIds = hasLiked
+    ? Array.from(new Set([...likedIds, postId]))
+    : likedIds.filter((likedId) => likedId !== postId)
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(nextIds))
+}
 
 // 초기 로드 시 localStorage에서 좋아요 여부 확인
 const checkLikedStatus = () => {
-  const raw = localStorage.getItem(STORAGE_KEY)
-  if (raw) {
-    const likedIds = JSON.parse(raw)
-    isLiked.value = likedIds.includes(id.value)
-  }
+  isLiked.value = readLikedIds().includes(id.value)
 }
 
 const load = async () => {
@@ -36,24 +63,26 @@ const load = async () => {
 }
 
 const handleLike = async () => {
+  if (!post.value) return
+
   try {
-    // API 호출을 통해 서버(MSW) 데이터 업데이트
-    post.value = await togglePostLike(id.value)
-    
-    // 로컬 상태 반전
-    isLiked.value = !isLiked.value
+    const currentLiked = isLiked.value
+    const nextLiked = !currentLiked
+    const response = await togglePostLike(id.value, currentLiked)
 
-    // localStorage 동기화
-    const raw = localStorage.getItem(STORAGE_KEY)
-    let likedIds = raw ? JSON.parse(raw) : []
+    const nextLikeCount =
+      'likes' in response && typeof response.likes === 'number'
+        ? response.likes
+        : 'likeCount' in response && typeof response.likeCount === 'number'
+          ? response.likeCount
+          : likeCount.value + (nextLiked ? 1 : -1)
 
-    if (isLiked.value) {
-      if (!likedIds.includes(id.value)) likedIds.push(id.value)
-    } else {
-      likedIds = likedIds.filter((likedId: number) => likedId !== id.value)
+    post.value = {
+      ...post.value,
+      likeCount: Math.max(0, nextLikeCount),
     }
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(likedIds))
+    isLiked.value = nextLiked
+    syncLikedStorage(id.value, nextLiked)
   } catch (error) {
     alert('좋아요 처리에 실패했습니다.')
   }
@@ -87,7 +116,7 @@ onMounted(load)
         <div class="toolbar" style="margin-top: 18px; display: flex; gap: 20px; align-items: center;">
           <div style="display: flex; align-items: center; gap: 6px;">
             <Eye :size="18" />
-            <span>{{ post.viewCount }}</span>
+            <span>{{ viewCount }}</span>
           </div>
 
           <button
@@ -110,7 +139,7 @@ onMounted(load)
               :stroke-width="2"
               :class="{ liked: isLiked }"
             />
-            <span>{{ post.likeCount }}</span>
+            <span>{{ likeCount }}</span>
           </button>
         </div>
 
