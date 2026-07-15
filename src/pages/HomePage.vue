@@ -34,7 +34,7 @@ onMounted(async () => {
       <div class="grid-4" style="margin-top: 16px">
         <article v-for="place in places" :key="place.id" class="place-card">
           <img
-            :src="place.image_path"
+            :src="place.image"
             :alt="place.title"
             style="
               height: 150px;
