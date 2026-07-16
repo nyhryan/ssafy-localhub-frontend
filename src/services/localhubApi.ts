@@ -130,7 +130,7 @@ export async function chatRespond(text: string): Promise<ChatResponse> {
   const res = await fetch(`${API_BASE}/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ message: text }),
   })
   if (!res.ok) throw new Error('챗봇 응답을 가져오는데 실패했습니다.')
   return res.json()

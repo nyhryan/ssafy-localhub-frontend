@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { chatRespond } from '../services/localhubApi'
 
-type ChatMessage = { role: 'user' | 'assistant'; text: string; items?: Array<{ id: number; title: string; type: string; note: string }> }
+type ChatMessage = { role: 'user' | 'assistant'; text: string }
 
 const input = ref('광주 맛집 추천해줘')
 const messages = ref<ChatMessage[]>([
@@ -16,7 +16,7 @@ const send = async () => {
   messages.value.push({ role: 'user', text })
   input.value = ''
   const response = await chatRespond(text)
-  messages.value.push({ role: 'assistant', text: response.message, items: response.items })
+  messages.value.push({ role: 'assistant', text: response.response ?? '응답이 비어 있습니다.' })
 }
 </script>
 
@@ -33,13 +33,7 @@ const send = async () => {
 
       <div class="chat-history" style="margin-top: 18px; max-height: 540px; overflow: auto">
         <article v-for="(message, index) in messages" :key="index" class="message" :class="message.role">
-          <p>{{ message.text }}</p>
-          <ul v-if="message.items?.length" style="padding-left: 18px; margin: 10px 0 0; display: grid; gap: 6px">
-            <li v-for="item in message.items" :key="item.id">
-              <strong>{{ item.title }}</strong>
-              <span class="muted"> · {{ item.type }} · {{ item.note }}</span>
-            </li>
-          </ul>
+          <p style="white-space: pre-line">{{ message.text }}</p>
         </article>
       </div>
 
