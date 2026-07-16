@@ -1,40 +1,45 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Loader2 } from 'lucide-vue-next'
 import PlaceCard from '../components/PlaceCard.vue'
-import { getCategories, getPostCategories } from '../services/localhubApi'
+import { useCurationPlaces } from '../composables/useCurationPlaces'
+import { getPostCategories } from '../services/localhubApi'
 import type { Place } from '../types/api'
 
 const props = defineProps<{ mode?: 'all' }>()
 
 const route = useRoute()
 const router = useRouter()
-
-const places = ref<Place[]>([])
-const filter = ref('전체')
-const page = ref(1)
-const totalPages = ref(1)
 const categories = getPostCategories()
+const sentinelRef = ref<HTMLElement | null>(null)
 
-const parsePage = (value: unknown) => {
-  const parsed = Number(Array.isArray(value) ? value[0] : value)
-  return Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 1
-}
+const filter = computed(() =>
+  typeof route.query.filter === 'string' && route.query.filter
+    ? route.query.filter
+    : '전체',
+)
 
-const syncFromRoute = () => {
-  page.value = parsePage(route.query.page)
-  filter.value =
-    typeof route.query.filter === 'string' && route.query.filter
-      ? route.query.filter
-      : '전체'
-}
+const {
+  places,
+  fetchNextPage,
+  hasNextPage,
+  isPending,
+  isFetchingNextPage,
+  isError,
+  error,
+} = useCurationPlaces(filter)
 
-const buildQuery = (next: { page?: number; filter?: string }) => {
+const title = computed(() =>
+  props.mode === 'all' ? '큐레이션 - 전체보기' : '큐레이션 - 카테고리 골라보기',
+)
+
+const showLoader = computed(
+  () => isPending.value || isFetchingNextPage.value,
+)
+
+const buildQuery = (nextFilter: string) => {
   const nextQuery: Record<string, string> = {}
-  const nextPage = next.page ?? page.value
-  const nextFilter = next.filter ?? filter.value
-
-  if (nextPage > 1) nextQuery.page = String(nextPage)
   if (nextFilter && nextFilter !== '전체') nextQuery.filter = nextFilter
   return nextQuery
 }
@@ -52,50 +57,16 @@ const sameQuery = (nextQuery: Record<string, string>) => {
   return true
 }
 
-const updateRouteQuery = (next: { page?: number; filter?: string }) => {
-  const nextQuery = buildQuery(next)
+const updateRouteQuery = (nextFilter: string) => {
+  const nextQuery = buildQuery(nextFilter)
   if (sameQuery(nextQuery)) return
   router.push({ query: nextQuery })
 }
 
-const load = async () => {
-  syncFromRoute()
-
-  const response = await getCategories({
-    filter: filter.value,
-    page: page.value,
-  })
-
-  places.value = response.places
-  totalPages.value = Math.max(1, response.pages.total_pages || 1)
-
-  if (page.value > totalPages.value) {
-    const nextQuery = buildQuery({ page: totalPages.value })
-    if (!sameQuery(nextQuery)) {
-      router.replace({ query: nextQuery })
-    }
-  }
-}
-
 const setFilter = (nextFilter: string) => {
-  updateRouteQuery({ page: 1, filter: nextFilter })
+  window.scrollTo({ top: 0, behavior: 'auto' })
+  updateRouteQuery(nextFilter)
 }
-
-const goToPage = (nextPage: number) => {
-  updateRouteQuery({ page: nextPage })
-}
-
-watch(
-  () => route.query,
-  async () => {
-    await load()
-  },
-  { immediate: true, deep: true },
-)
-
-const title = computed(() =>
-  props.mode === 'all' ? '큐레이션 - 전체보기' : '큐레이션 - 카테고리 골라보기',
-)
 
 const goToMap = (place: Place) => {
   const nextQuery: Record<string, string> = {
@@ -108,6 +79,49 @@ const goToMap = (place: Place) => {
 
   router.push({ path: '/map', query: nextQuery })
 }
+
+// Drop legacy ?page= from the URL once (infinite scroll no longer uses it).
+watch(
+  () => route.query.page,
+  (page) => {
+    if (page === undefined) return
+    const nextQuery = buildQuery(filter.value)
+    if (!sameQuery(nextQuery)) {
+      router.replace({ query: nextQuery })
+    }
+  },
+  { immediate: true },
+)
+
+let observer: IntersectionObserver | null = null
+
+const disconnectObserver = () => {
+  observer?.disconnect()
+  observer = null
+}
+
+watch(
+  sentinelRef,
+  (el) => {
+    disconnectObserver()
+    if (!el) return
+
+    observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return
+        if (!hasNextPage.value || isFetchingNextPage.value) return
+        void fetchNextPage()
+      },
+      { rootMargin: '240px 0px' },
+    )
+    observer.observe(el)
+  },
+  { flush: 'post' },
+)
+
+onBeforeUnmount(() => {
+  disconnectObserver()
+})
 </script>
 
 <template>
@@ -135,29 +149,48 @@ const goToMap = (place: Place) => {
     </section>
 
     <section class="grid-2">
-      <div v-for="place in places" :key="place.id" @click="goToMap(place)" style="cursor: pointer">
+      <div
+        v-for="place in places"
+        :key="place.id"
+        style="cursor: pointer"
+        @click="goToMap(place)"
+      >
         <PlaceCard :place="place" />
       </div>
     </section>
 
-    <section class="surface">
-      <div class="pagination-container">
-        <!-- 이전 버튼 -->
-        <button class="pagination-arrow" :disabled="page <= 1" @click="goToPage(Math.max(1, page - 1))">
-          이전
-        </button>
+    <p v-if="isError" class="curation-status muted">
+      {{ error?.message || '장소 목록을 불러오지 못했습니다.' }}
+    </p>
 
-        <!-- 페이지 번호 (구글 스타일: 현재 페이지 강조) -->
-        <div class="pagination-numbers">
-          <span class="active">{{ page }}</span>
-          <span class="muted">/ {{ totalPages }}</span>
-        </div>
-
-        <!-- 다음 버튼 -->
-        <button class="pagination-arrow" :disabled="page >= totalPages" @click="goToPage(Math.min(totalPages, page + 1))">
-          다음
-        </button>
-      </div>
-    </section>
+    <div ref="sentinelRef" class="curation-sentinel" aria-hidden="true">
+      <Loader2 v-if="showLoader" class="curation-loader" :size="28" />
+    </div>
   </main>
 </template>
+
+<style scoped>
+.curation-sentinel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 12px 0 24px;
+}
+
+.curation-loader {
+  color: var(--text-muted, #6b7280);
+  animation: curation-spin 0.8s linear infinite;
+}
+
+.curation-status {
+  text-align: center;
+  padding: 12px 0;
+}
+
+@keyframes curation-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+</style>
