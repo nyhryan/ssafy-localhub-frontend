@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref, shallowRef } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useBottomSheetDrag, SHEET_HEIGHT_MS } from "../composables/useBottomSheetDrag";
+import { useMediaQuery } from "../composables/useMediaQuery";
 import { getCategories, getPostCategories } from "../services/localhubApi";
 import type { Place } from "../types/api";
 
@@ -8,12 +10,20 @@ interface KakaoMapWindow extends Window {
   kakao?: {
     maps: {
       load: (callback: () => void) => void;
+      event: {
+        addListener: (
+          target: unknown,
+          type: string,
+          handler: () => void
+        ) => void;
+      };
       Map: new (
         container: HTMLElement,
         options: { center: unknown; level: number }
       ) => {
         setBounds: (bounds: unknown) => void;
         setCenter: (center: unknown) => void;
+        relayout: () => void;
       };
       LatLng: new (latitude: number, longitude: number) => unknown;
       LatLngBounds: new () => {
@@ -39,14 +49,20 @@ interface KakaoMapWindow extends Window {
   };
 }
 
+const MOBILE_QUERY = "(max-width: 720px)";
+const PEEK_HEIGHT = 112;
+const EXPANDED_RATIO = 0.62;
+
 const route = useRoute();
 const router = useRouter();
+const isMobile = useMediaQuery(MOBILE_QUERY);
 
 const places = ref<Place[]>([]);
 const mapContainer = ref<HTMLElement | null>(null);
 const mapInstance = shallowRef<{
   setBounds: (bounds: unknown) => void;
   setCenter: (center: unknown) => void;
+  relayout: () => void;
 } | null>(null);
 const markerInstances = shallowRef<
   Array<{
@@ -64,6 +80,90 @@ const currentPage = ref(1);
 const totalPages = ref(1);
 const categories = getPostCategories();
 const mapError = ref("");
+const expandedSheetHeight = ref(
+  typeof window !== "undefined"
+    ? Math.round(window.innerHeight * EXPANDED_RATIO)
+    : 420
+);
+
+const relayoutMap = () => {
+  mapInstance.value?.relayout();
+};
+
+const centerMapOnPlace = (place: Place) => {
+  const kakaoWindow = window as KakaoMapWindow;
+  const kakaoMaps = kakaoWindow.kakao?.maps;
+
+  if (
+    !mapInstance.value ||
+    !kakaoMaps ||
+    !place.mapy ||
+    !place.mapx
+  ) {
+    return;
+  }
+
+  mapInstance.value.setCenter(
+    new kakaoMaps.LatLng(Number(place.mapy), Number(place.mapx))
+  );
+};
+
+const centerMapOnSelectedPlace = () => {
+  const place = places.value.find(
+    (item) => String(item.id) === String(selectedPlaceId.value)
+  );
+  if (place) {
+    centerMapOnPlace(place);
+  }
+};
+
+let relayoutTimer: ReturnType<typeof setTimeout> | null = null;
+
+const scheduleMapRelayout = () => {
+  if (relayoutTimer !== null) {
+    clearTimeout(relayoutTimer);
+  }
+
+  void nextTick(() => {
+    if (relayoutTimer !== null) {
+      clearTimeout(relayoutTimer);
+    }
+
+    relayoutTimer = setTimeout(() => {
+      relayoutTimer = null;
+      relayoutMap();
+      centerMapOnSelectedPlace();
+    }, SHEET_HEIGHT_MS + 16);
+  });
+};
+
+const {
+  snap: sheetSnap,
+  sheetStyle,
+  collapse: collapseSheet,
+  syncHeightToSnap,
+  onPointerDown: onSheetPointerDown,
+  onPointerMove: onSheetPointerMove,
+  onPointerUp: onSheetPointerUp,
+} = useBottomSheetDrag({
+  peekHeight: PEEK_HEIGHT,
+  expandedHeight: expandedSheetHeight,
+  onSnapChange: () => {
+    scheduleMapRelayout();
+  },
+});
+
+const selectedPlace = computed(
+  () =>
+    places.value.find(
+      (place) => String(place.id) === String(selectedPlaceId.value)
+    ) ?? null
+);
+
+const updateExpandedHeight = () => {
+  expandedSheetHeight.value = Math.round(window.innerHeight * EXPANDED_RATIO);
+  syncHeightToSnap();
+};
 
 const loadKakaoMap = () =>
   new Promise<void>((resolve, reject) => {
@@ -211,8 +311,8 @@ const refreshMarkerHighlights = () => {
 
   markerInstances.value.forEach(({ placeId: markerPlaceId, marker }) => {
     const shouldHighlight =
-      markerPlaceId === hoveredPlaceId.value ||
-      markerPlaceId === selectedPlaceId.value;
+      String(markerPlaceId) === String(hoveredPlaceId.value) ||
+      String(markerPlaceId) === String(selectedPlaceId.value);
     marker.setImage(shouldHighlight ? activeImage : defaultImage);
   });
 };
@@ -232,24 +332,19 @@ const selectPlace = (placeId: number | string) => {
   hoveredPlaceId.value = placeId;
   refreshMarkerHighlights();
 
-  const kakaoWindow = window as KakaoMapWindow;
-  const kakaoMaps = kakaoWindow.kakao?.maps;
   const targetPlace = places.value.find(
     (place) => String(place.id) === String(placeId)
   );
 
-  if (
-    !mapInstance.value ||
-    !kakaoMaps ||
-    !targetPlace?.mapy ||
-    !targetPlace?.mapx
-  ) {
+  if (isMobile.value) {
+    collapseSheet();
+    scheduleMapRelayout();
     return;
   }
 
-  mapInstance.value.setCenter(
-    new kakaoMaps.LatLng(Number(targetPlace.mapy), Number(targetPlace.mapx))
-  );
+  if (targetPlace) {
+    centerMapOnPlace(targetPlace);
+  }
 };
 
 const loadPlaces = async () => {
@@ -330,6 +425,10 @@ const goToPage = async (nextPage: number) => {
   }
 };
 
+const isPlaceActive = (placeId: number | string) =>
+  String(hoveredPlaceId.value) === String(placeId) ||
+  String(selectedPlaceId.value) === String(placeId);
+
 const drawMarkers = () => {
   const kakaoWindow = window as KakaoMapWindow;
   const kakaoMaps = kakaoWindow.kakao?.maps;
@@ -377,6 +476,10 @@ const drawMarkers = () => {
     });
 
     marker.setMap(mapInstance.value);
+    kakaoMaps.event.addListener(marker, "click", () => {
+      selectPlace(place.id);
+    });
+
     markerInstances.value.push({
       placeId: place.id,
       marker,
@@ -399,12 +502,33 @@ const drawMarkers = () => {
   refreshMarkerHighlights();
 };
 
+watch(isMobile, async () => {
+  if (!isMobile.value) {
+    collapseSheet();
+  }
+  await nextTick();
+  if (isMobile.value) {
+    scheduleMapRelayout();
+  } else {
+    relayoutMap();
+  }
+});
+
 onMounted(async () => {
+  updateExpandedHeight();
+  window.addEventListener("resize", updateExpandedHeight);
+
   try {
     await loadPlaces();
     await loadKakaoMap();
     initMap();
     drawMarkers();
+    await nextTick();
+    if (isMobile.value) {
+      scheduleMapRelayout();
+    } else {
+      relayoutMap();
+    }
   } catch (error) {
     mapError.value =
       error instanceof Error
@@ -412,32 +536,89 @@ onMounted(async () => {
         : "지도를 불러오는데 실패했습니다.";
   }
 });
+
+onUnmounted(() => {
+  window.removeEventListener("resize", updateExpandedHeight);
+  if (relayoutTimer !== null) {
+    clearTimeout(relayoutTimer);
+    relayoutTimer = null;
+  }
+});
 </script>
 
 <template>
   <main class="page">
-    <section class="map-card">
-      <div class="section-head">
+    <section class="map-card" :class="{ 'map-card--mobile': isMobile }">
+      <div class="section-head" :class="{ 'section-head--compact': isMobile }">
         <div>
           <h2>지역 명소 지도 시각화</h2>
-          <p class="section-desc">
+          <p v-if="!isMobile" class="section-desc">
             카카오 지도 SDK로 실제 지도 위에 장소 마커를 표시합니다.
           </p>
         </div>
       </div>
 
-      <div class="grid-2" style="margin-top: 18px">
-        <div
-          ref="mapContainer"
-          class="map-canvas"
-          aria-label="카카오 지도 영역"
-        ></div>
+      <div class="map-layout" :class="{ 'map-layout--mobile': isMobile }">
+        <div class="map-stage">
+          <div
+            ref="mapContainer"
+            class="map-canvas"
+            :class="{ 'map-canvas--mobile': isMobile }"
+            aria-label="카카오 지도 영역"
+          ></div>
 
-        <div class="map-legend">
-          <div class="filter-row">
+          <article
+            v-if="isMobile && selectedPlace"
+            class="selected-overlay"
+          >
+            <div class="badge">{{ selectedPlace.category_name }}</div>
+            <strong class="selected-overlay__title">{{
+              selectedPlace.title
+            }}</strong>
+            <p class="muted selected-overlay__meta">
+              {{ selectedPlace.region }} · {{ selectedPlace.address }}
+            </p>
+          </article>
+        </div>
+
+        <aside
+          class="map-panel"
+          :class="{
+            'map-panel--sheet': isMobile,
+            'map-panel--expanded': isMobile && sheetSnap === 'expanded',
+          }"
+          :style="isMobile ? sheetStyle : undefined"
+        >
+          <template v-if="isMobile">
+            <div
+              class="sheet-drag-zone"
+              @pointerdown="onSheetPointerDown"
+              @pointermove="onSheetPointerMove"
+              @pointerup="onSheetPointerUp"
+              @pointercancel="onSheetPointerUp"
+            >
+              <div class="sheet-handle" aria-hidden="true"></div>
+            </div>
+            <div class="sheet-categories">
+              <div class="filter-row filter-row--scroll">
+                <button
+                  v-for="item in categories"
+                  :key="`mobile-${item}`"
+                  type="button"
+                  class="button-ghost"
+                  :class="{ 'category-chip-active': currentFilter === item }"
+                  @click="setFilter(item)"
+                >
+                  {{ item }}
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <div v-else class="filter-row">
             <button
               v-for="item in categories"
-              :key="item"
+              :key="`desktop-${item}`"
               type="button"
               class="button-ghost"
               :class="{ 'category-chip-active': currentFilter === item }"
@@ -447,65 +628,181 @@ onMounted(async () => {
             </button>
           </div>
 
-          <div class="places-grid">
-            <article
-              v-for="place in places"
-              :key="place.id"
-              :class="[
-                'stat-card',
-                {
-                  active:
-                    hoveredPlaceId === place.id || selectedPlaceId === place.id,
-                },
-              ]"
-              @mouseenter="setHoveredPlace(place.id)"
-              @mouseleave="resetHoveredPlace"
-              @click="selectPlace(place.id)"
+          <div
+            class="panel-scroll"
+            :class="{ 'panel-scroll--sheet': isMobile }"
+          >
+            <div
+              class="places-grid"
+              :class="{ 'places-grid--mobile': isMobile }"
             >
-              <div class="badge">{{ place.category_name }}</div>
-              <strong style="display: block; margin-top: 4px">{{
-                place.title
-              }}</strong>
-              <p class="muted" style="margin-top: 3px">
-                {{ place.region }} · {{ place.address }}
-              </p>
-            </article>
-          </div>
-
-          <div class="pagination-container">
-            <button
-              class="pagination-arrow"
-              :disabled="currentPage <= 1"
-              @click="goToPage(Math.max(1, currentPage - 1))"
-            >
-              이전
-            </button>
-
-            <div class="pagination-numbers">
-              <span class="active">{{ currentPage }}</span>
-              <span class="muted">/ {{ totalPages }}</span>
+              <article
+                v-for="place in places"
+                :key="place.id"
+                :class="['stat-card', { active: isPlaceActive(place.id) }]"
+                @mouseenter="setHoveredPlace(place.id)"
+                @mouseleave="resetHoveredPlace"
+                @click="selectPlace(place.id)"
+              >
+                <div class="badge">{{ place.category_name }}</div>
+                <strong class="place-title">{{ place.title }}</strong>
+                <p class="muted place-meta">
+                  {{ place.region }} · {{ place.address }}
+                </p>
+              </article>
             </div>
 
-            <button
-              class="pagination-arrow"
-              :disabled="currentPage >= totalPages"
-              @click="goToPage(Math.min(totalPages, currentPage + 1))"
-            >
-              다음
-            </button>
-          </div>
+            <div class="pagination-container">
+              <button
+                class="pagination-arrow"
+                :disabled="currentPage <= 1"
+                @click="goToPage(Math.max(1, currentPage - 1))"
+              >
+                이전
+              </button>
 
-          <p v-if="mapError" class="muted">{{ mapError }}</p>
-        </div>
+              <div class="pagination-numbers">
+                <span class="active">{{ currentPage }}</span>
+                <span class="muted">/ {{ totalPages }}</span>
+              </div>
+
+              <button
+                class="pagination-arrow"
+                :disabled="currentPage >= totalPages"
+                @click="goToPage(Math.min(totalPages, currentPage + 1))"
+              >
+                다음
+              </button>
+            </div>
+
+            <p v-if="mapError" class="muted">{{ mapError }}</p>
+          </div>
+        </aside>
       </div>
     </section>
   </main>
 </template>
 
 <style scoped>
-.map-legend {
+.map-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.map-layout--mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 12px;
+  height: min(72vh, calc(100dvh - 168px));
+  min-height: 420px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.map-card--mobile {
+  padding-bottom: 12px;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.section-head--compact h2 {
+  font-size: 1.15rem;
+}
+
+.map-stage {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+}
+
+.map-layout--mobile .map-stage {
+  flex: 1;
+  min-height: 0;
+}
+
+.map-canvas {
+  height: 100%;
+}
+
+.map-canvas--mobile {
+  min-height: 0;
+  border-radius: 18px;
+}
+
+.selected-overlay {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 107, 107, 0.28);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 28px rgba(32, 40, 74, 0.16);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+.selected-overlay__title {
+  display: block;
+  margin-top: 4px;
+}
+
+.selected-overlay__meta {
+  margin-top: 3px;
+}
+
+.map-panel {
   display: grid;
   gap: 8px;
+  min-width: 0;
+}
+
+.map-panel--sheet {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  /* Avoid overflow:hidden here — it blocks nested horizontal pan on the category row. */
+  overflow: visible;
+  border-radius: 18px 18px 12px 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 -8px 28px rgba(32, 40, 74, 0.1);
+}
+
+.sheet-drag-zone {
+  flex-shrink: 0;
+  touch-action: none;
+  padding: 10px 12px 4px;
+  user-select: none;
+}
+
+.sheet-handle {
+  width: 42px;
+  height: 4px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.35);
+}
+
+.sheet-categories {
+  flex-shrink: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  padding: 6px 12px 10px;
+  box-sizing: border-box;
 }
 
 .filter-row {
@@ -514,10 +811,57 @@ onMounted(async () => {
   gap: 8px;
 }
 
+.filter-row--scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding-bottom: 2px;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.filter-row--scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-row--scroll .button-ghost {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.panel-scroll {
+  display: grid;
+  gap: 8px;
+}
+
+.panel-scroll--sheet {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 12px 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.map-panel--sheet:not(.map-panel--expanded) .panel-scroll--sheet {
+  display: none;
+}
+
 .places-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.places-grid--mobile {
+  grid-template-columns: 1fr;
 }
 
 .pagination-container {
@@ -537,6 +881,15 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   font-weight: 700;
+}
+
+.place-title {
+  display: block;
+  margin-top: 4px;
+}
+
+.place-meta {
+  margin-top: 3px;
 }
 
 .stat-card {
