@@ -90,8 +90,7 @@ export interface PlaceListResponse {
 }
 
 export interface ChatResponse {
-  message: string;
-  items: Array<{ id: number; title: string; type: string; note: string }>;
+  response: string | null;
 }
 
 export interface DashboardSummary {

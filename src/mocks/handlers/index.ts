@@ -195,10 +195,10 @@ export const handlers = [
   // ==========================================
   http.post("/api/v1/chat", async ({ request }) => {
     await delay(160);
-    const body = (await request.json()) as { text?: string };
-    if (!body.text) return new HttpResponse(null, { status: 400 });
+    const body = (await request.json()) as { message?: string };
+    if (!body.message) return new HttpResponse(null, { status: 400 });
 
-    const normalized = normalize(body.text);
+    const normalized = normalize(body.message);
     const placeKeyword =
       normalized.includes("맛집") ||
       normalized.includes("음식") ||
@@ -224,28 +224,22 @@ export const handlers = [
         )
         .slice(0, 3);
       return HttpResponse.json({
-        message: matched.length
-          ? `게시글 ${matched.length}건을 찾았어요. 관련 글을 빠르게 확인해보세요.`
+        response: matched.length
+          ? [
+              `게시글 ${matched.length}건을 찾았어요. 관련 글을 빠르게 확인해보세요.`,
+              ...matched.map((post) => `${post.title} · ${post.category_name} · ${post.author}`),
+            ].join("\n")
           : "게시글 검색어를 조금 더 구체적으로 입력해보세요.",
-        items: matched.map((post) => ({
-          id: post.id,
-          title: post.title,
-          type: post.category_name,
-          note: post.author,
-        })),
       });
     }
 
     if (festivalKeyword) {
       const matched = mockFestivals.slice(0, 3);
       return HttpResponse.json({
-        message: "이번 달 축제 일정을 빠르게 추려봤어요.",
-        items: matched.map((f) => ({
-          id: f.id,
-          title: f.title,
-          type: f.region,
-          note: `${f.date} · ${f.location}`,
-        })),
+        response: [
+          "이번 달 축제 일정을 빠르게 추려봤어요.",
+          ...matched.map((festival) => `${festival.title} · ${festival.date} · ${festival.location}`),
+        ].join("\n"),
       });
     }
 
@@ -259,26 +253,16 @@ export const handlers = [
         )
         .slice(0, 3);
       return HttpResponse.json({
-        message: "지역 장소 추천 결과를 모아봤어요.",
-        items: matched.map((p) => ({
-          id: p.id,
-          title: p.title,
-          type: p.category_name ?? '기타',
-          note: p.address ?? '',
-        })),
+        response: [
+          "지역 장소 추천 결과를 모아봤어요.",
+          ...matched.map((place) => `${place.title} · ${place.category_name ?? "기타"} · ${place.address ?? ""}`),
+        ].join("\n"),
       });
     }
 
     return HttpResponse.json({
-      message:
+      response:
         "관광지, 맛집, 축제, 게시글 검색을 도와드릴 수 있어요. 원하는 지역이나 카테고리를 말해보세요.",
-      items: mockPosts
-        .slice(0, 2)
-        .map((post) => ({
-          id: post.id,
-          title: post.title,
-          type: post.category_name,
-        })),
     });
   }),
 

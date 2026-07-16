@@ -2,10 +2,11 @@
 import { ref } from 'vue'
 import { chatRespond } from '../services/localhubApi'
 
-type ChatMessage = { role: 'user' | 'assistant'; text: string; items?: Array<{ id: number; title: string; type: string; note: string }> }
+type ChatMessage = { role: 'user' | 'assistant'; text: string }
 
 const open = ref(false)
 const input = ref('서울에서 이번 주말 축제 추천해줘')
+const isSending = ref(false)
 const messages = ref<ChatMessage[]>([
   { role: 'assistant', text: '챗봇을 열어 질문해보세요. 관광지, 축제, 맛집, 게시글 검색을 도와드릴게요.' },
 ])
@@ -16,12 +17,26 @@ const toggle = () => {
 
 const send = async () => {
   const text = input.value.trim()
-  if (!text) return
+  if (!text || isSending.value) return
 
   messages.value.push({ role: 'user', text })
   input.value = ''
-  const response = await chatRespond(text)
-  messages.value.push({ role: 'assistant', text: response.message, items: response.items })
+  isSending.value = true
+
+  try {
+    const { response } = await chatRespond(text)
+    messages.value.push({
+      role: 'assistant',
+      text: response ?? '응답이 비어 있습니다.',
+    })
+  } catch {
+    messages.value.push({
+      role: 'assistant',
+      text: '챗봇 응답을 가져오지 못했습니다. 잠시 후 다시 시도해주세요.',
+    })
+  } finally {
+    isSending.value = false
+  }
 }
 </script>
 
@@ -40,20 +55,22 @@ const send = async () => {
 
       <div class="chat-history" style="max-height: 360px; overflow: auto; margin-top: 16px">
         <article v-for="(message, index) in messages" :key="index" class="message" :class="message.role">
-          <p>{{ message.text }}</p>
-          <ul v-if="message.items?.length" style="padding-left: 18px; margin: 10px 0 0; display: grid; gap: 6px">
-            <li v-for="item in message.items" :key="item.id">
-              <strong>{{ item.title }}</strong>
-              <span class="muted"> · {{ item.type }} · {{ item.note }}</span>
-            </li>
-          </ul>
+          <p class="message-text">{{ message.text }}</p>
         </article>
       </div>
 
       <form class="chat-input" style="margin-top: 14px" @submit.prevent="send">
-        <textarea v-model="input" rows="3" placeholder="예: 광주 맛집 추천해줘"></textarea>
-        <button type="submit" class="button" style="width: 100%">전송</button>
+        <textarea v-model="input" rows="3" placeholder="예: 광주 맛집 추천해줘" :disabled="isSending"></textarea>
+        <button type="submit" class="button" style="width: 100%" :disabled="isSending">
+          {{ isSending ? '응답을 기다리는 중...' : '전송' }}
+        </button>
       </form>
     </section>
   </div>
 </template>
+
+<style scoped>
+.message-text {
+  white-space: pre-line;
+}
+</style>

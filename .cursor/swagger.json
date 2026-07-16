@@ -5,28 +5,12 @@
     "version": "0.1.0"
   },
   "paths": {
-    "/api/v1/": {
-      "get": {
-        "summary": "Greeting",
-        "operationId": "greeting_api_v1__get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/posts/recent": {
       "get": {
         "tags": [
           "posts"
         ],
-        "summary": "Get Recent Posts",
+        "summary": "최근 게시물 조회(기본 5개)",
         "operationId": "get_recent_posts_api_v1_posts_recent_get",
         "parameters": [
           {
@@ -50,7 +34,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/PostListItem"
+                    "$ref": "#/components/schemas/PostResponse"
                   },
                   "title": "Response Get Recent Posts Api V1 Posts Recent Get"
                 }
@@ -135,8 +119,28 @@
                   "type": "null"
                 }
               ],
+              "description": "제목과 본문에서 검색할 단어",
               "title": "Keyword"
-            }
+            },
+            "description": "제목과 본문에서 검색할 단어"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "카테고리(관광지, 문화시설,축제공연행사, 여행코스, 레포츠, 숙박, 쇼핑, 음식점)",
+              "title": "Category"
+            },
+            "description": "카테고리(관광지, 문화시설,축제공연행사, 여행코스, 레포츠, 숙박, 쇼핑, 음식점)"
           }
         ],
         "responses": {
@@ -184,7 +188,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PostRead"
+                  "$ref": "#/components/schemas/PostResponse"
                 }
               }
             }
@@ -226,7 +230,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PostRead"
+                  "$ref": "#/components/schemas/PostResponse"
                 }
               }
             }
@@ -276,7 +280,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PostRead"
+                  "$ref": "#/components/schemas/PostResponse"
                 }
               }
             }
@@ -350,7 +354,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PostVerifyRequest"
+                "$ref": "#/components/schemas/PostPasswordVerify"
               }
             }
           }
@@ -361,6 +365,59 @@
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/posts/{post_id}/like": {
+      "post": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "좋아요 수 업데이트",
+        "description": "좋아요 수를 업데이트합니다. 사용자가 좋아요를 눌렀는지 여부를 localStorage에 저장한 것을 사용합니다. 현재 눌러진 상태라면 localStorage에 true, 백엔드 API에 요청을 보내면 좋아요를 하나 감소 시킵니다.",
+        "operationId": "like_post_api_v1_posts__post_id__like_post",
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostLikeToggle"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostLikeCountResponse"
+                }
               }
             }
           },
@@ -437,6 +494,47 @@
           }
         }
       }
+    },
+    "/api/v1/chat": {
+      "post": {
+        "tags": [
+          "chatbot"
+        ],
+        "summary": "Handle Chat",
+        "operationId": "handle_chat_api_v1_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatBotResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -460,6 +558,40 @@
           "pages"
         ],
         "title": "CategoryResponseSchema"
+      },
+      "ChatBotResponse": {
+        "properties": {
+          "response": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response",
+            "description": "챗봇 답변"
+          }
+        },
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "title": "ChatBotResponse"
+      },
+      "ChatRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ChatRequest"
       },
       "HTTPValidationError": {
         "properties": {
@@ -613,79 +745,37 @@
         ],
         "title": "PostCreate"
       },
-      "PostListItem": {
+      "PostLikeCountResponse": {
         "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "title": {
-            "type": "string",
-            "title": "Title"
-          },
-          "content": {
-            "type": "string",
-            "title": "Content"
-          },
-          "image_path": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Image Path"
-          },
-          "views": {
-            "type": "integer",
-            "title": "Views"
-          },
           "likes": {
             "type": "integer",
             "title": "Likes"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At"
-          },
-          "category_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Category Name"
           }
         },
         "type": "object",
         "required": [
-          "id",
-          "title",
-          "content",
-          "image_path",
-          "views",
-          "likes",
-          "created_at",
-          "updated_at"
+          "likes"
         ],
-        "title": "PostListItem"
+        "title": "PostLikeCountResponse"
+      },
+      "PostLikeToggle": {
+        "properties": {
+          "has_liked": {
+            "type": "boolean",
+            "title": "Has Liked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "has_liked"
+        ],
+        "title": "PostLikeToggle"
       },
       "PostListResponse": {
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/PostListItem"
+              "$ref": "#/components/schemas/PostResponse"
             },
             "type": "array",
             "title": "Items"
@@ -717,7 +807,21 @@
         ],
         "title": "PostListResponse"
       },
-      "PostRead": {
+      "PostPasswordVerify": {
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "title": "PostPasswordVerify"
+      },
+      "PostResponse": {
         "properties": {
           "id": {
             "type": "integer",
@@ -783,7 +887,7 @@
           "created_at",
           "updated_at"
         ],
-        "title": "PostRead"
+        "title": "PostResponse"
       },
       "PostUpdate": {
         "properties": {
@@ -831,20 +935,6 @@
           "category_name"
         ],
         "title": "PostUpdate"
-      },
-      "PostVerifyRequest": {
-        "properties": {
-          "password": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Password"
-          }
-        },
-        "type": "object",
-        "required": [
-          "password"
-        ],
-        "title": "PostVerifyRequest"
       },
       "ValidationError": {
         "properties": {
