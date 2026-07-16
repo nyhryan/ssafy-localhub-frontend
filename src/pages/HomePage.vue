@@ -21,20 +21,54 @@ const placeWithImage = computed(() => {
 });
 
 onMounted(async () => {
-  // 첫 페이지로 총 페이지 수 확인
-  const firstPageResponse = await getCategories({ filter: "전체", page: 1 });
-  const totalPages = firstPageResponse.pages.total_pages || 1;
-  
-  // 랜덤 페이지 생성 (1부터 totalPages까지)
-  const randomPage = Math.floor(Math.random() * totalPages) + 1;
-  
-  const [posts, placeList] = await Promise.all([
-    getRecentPosts(8),
-    getCategories({ filter: "전체", page: randomPage }),
-  ]);
+  try {
+    // 1. 전체 카테고리 목록 정의
+    const allCategories = ["관광지", "문화시설", "축제공연", "행사", "숙박", "레포츠", "쇼핑", "여행코스"];
 
-  recentPosts.value = posts;
-  places.value = placeList.places;
+    // 2. 모든 카테고리의 데이터를 동시에 조회
+    const [postsResult, ...categoryResults] = await Promise.allSettled([
+      getRecentPosts(8),
+      ...allCategories.map((cat) => getCategories({ filter: cat, page: 1 })),
+    ]);
+
+    // 최근 게시글 처리
+    if (postsResult.status === "fulfilled") {
+      recentPosts.value = postsResult.value;
+    }
+
+    // 3. 데이터가 최소 2개 이상 존재하는 카테고리만 필터링
+    const availableCategories: { name: string; places: Place[] }[] = [];
+    categoryResults.forEach((result, idx) => {
+      if (result.status === "fulfilled" && result.value && result.value.places) {
+        if (result.value.places.length >= 2) {
+          availableCategories.push({
+            name: allCategories[idx],
+            places: result.value.places
+          });
+        }
+      }
+    });
+
+    // 4. 후보 카테고리 목록 중 무작위로 4개만 선택
+    const targetCategories = [...availableCategories]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 4);
+
+    // 5. 선택된 4개 카테고리 각각의 데이터 리스트를 무작위로 섞은 뒤 2개씩 추출
+    const mixedPlaces: Place[] = [];
+    targetCategories.forEach((catInfo) => {
+      // 해당 카테고리가 가진 전체 장소 목록을 복사하여 무작위로 섞음
+      const shuffledPlacesInCat = [...catInfo.places].sort(() => Math.random() - 0.5);
+      // 완전히 섞인 목록에서 상위 2개를 추출하여 병합
+      mixedPlaces.push(...shuffledPlacesInCat.slice(0, 2));
+    });
+
+    // 6. 최종 8개의 장소 카드를 다시 한번 전체적으로 무작위 정렬하여 화면에 배치
+    places.value = mixedPlaces.sort(() => Math.random() - 0.5);
+
+  } catch (error) {
+    console.error("데이터 로딩 중 에러 발생:", error);
+  }
 });
 </script>
 
